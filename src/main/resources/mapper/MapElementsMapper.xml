@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postgis.demo.dao.MapElementsMapper">
+    <resultMap id="MapElementsMap" type="com.postgis.demo.model.MapElements">
+        <id column="id" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="longitude" jdbcType="REAL" property="longitude"/>
+        <result column="latitude" jdbcType="REAL" property="latitude"/>
+        <result property="geoStr" jdbcType="VARCHAR" column="element_location"/>
+    </resultMap>
+
+    <!--  根据id查询地图要素  -->
+    <select id="findById" parameterType="Integer" resultMap="MapElementsMap">
+        SELECT id, name, longitude, latitude,
+            ST_AsGeoJson(element_location) as element_location
+            FROM map_elements
+            where id = #{id}
+    </select>
+
+    <!--  添加地图要素  -->
+    <insert id="addMapElement" parameterType="com.postgis.demo.model.MapElements" useGeneratedKeys="true"
+            keyProperty="id">
+        <selectKey keyProperty="id" resultType="Integer" order="BEFORE">
+            SELECT nextval('map_elements_id_seq'::regclass)
+        </selectKey>
+        insert into map_elements(name, longitude, latitude, element_location)
+        values (#{name}, #{longitude}, #{latitude}, ST_GeomFromText(#{geoStr}, 4326))
+    </insert>
+
+    <!--  查询全部  -->
+    <select id="findAll" resultMap="MapElementsMap">
+        SELECT id, name, longitude, latitude,
+            ST_AsGeoJson(element_location) as element_location
+            FROM map_elements
+    </select>
+
+    <!--  更新内容  -->
+    <update id="updateMapElement"  parameterType="com.postgis.demo.model.MapElements" useGeneratedKeys="true" keyProperty="id" >
+        UPDATE map_elements
+        <trim prefix="set" suffixOverrides=",">
+            <if test="name!=null">name=#{name},</if>
+            <if test="longitude!=null">longitude=#{longitude},</if>
+            <if test="latitude!=null">latitude=#{latitude},</if>
+            <if test="geoStr!=null">element_location=ST_GeomFromText(#{geoStr}, 4326),</if>
+        </trim>
+        WHERE id=#{id}
+    </update>
+
+    <!--  id删除  -->
+    <delete id="deleteMapElement" parameterType="Long">
+        delete from map_elements where id = #{id}
+    </delete>
+
+    <!--  条件查询  -->
+    <select id="findMapElementByCondition" parameterType="com.postgis.demo.model.MapElements" resultMap="MapElementsMap">
+        select  id, name, longitude, latitude,
+        ST_AsGeoJson(element_location) as element_location
+        FROM map_elements
+        where 1 = 1
+        <if test="name != null" >
+            and name like #{name}
+        </if>
+        <if test="longitude > 0">
+            and longitude = #{longitude}
+        </if>
+        <if test="latitude > 0">
+            and latitude = #{latitude}
+        </if>
+    </select>
+
+    <!--  圆形区域查询  -->
+    <select id="findMapElementByCircle" resultMap="MapElementsMap">
+        SELECT id, name, longitude, latitude, ST_AsGeoJson(element_location) as element_location
+        from map_elements
+        where ST_DWithin(element_location :: geography, ST_GeomFromText('POINT' || #{geometry}, 4326 ) :: geography, #{radius} ) IS TRUE
+    </select>
+
+    <!--  多边形区域查询  -->
+    <select id="findMapElementByPolygon" parameterType="String" resultMap="MapElementsMap">
+        SELECT id, name,longitude, latitude,
+        ST_AsGeoJson(element_location) as element_location
+        from map_elements
+        where ST_Contains( ST_MakePolygon(ST_GeomFromText('LINESTRING' || #{geometry}, 4326)) , element_location) = 't'
+    </select>
+
+</mapper>

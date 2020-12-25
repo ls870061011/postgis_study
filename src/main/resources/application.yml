@@ -1,0 +1,25 @@
+server:
+  port: 8088
+
+#mybatis:
+#  mapper-locations: classpath:mapper/*.xml
+#  type-aliases-package: com.postgis.demo.model
+#  configuration:
+#    map-underscore-to-camel-case: true
+
+#pagehelper
+#pagehelper:
+#  helperDialect: postgresql
+#  reasonable: true
+#  supportMethodsArguments: true
+#  params: count=countSql
+#  returnPageInfo: check
+
+spring:
+  datasource:
+    url: jdbc:postgresql://10.100.150.100:5432/postgis_sample
+    username: postgres
+    password: postgres
+    driverClassName: org.postgresql.Driver
+
+#logging.level.com.postgis.demo.dao: debug
